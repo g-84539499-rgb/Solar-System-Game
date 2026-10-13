@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Solar System Explorer: Space Jump Mission</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #050510;
+            color: #ffffff;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
+        }
+
+        canvas {
+            display: block;
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.3);
+            background: transparent;
+        }
+
+        /* Overlay Screens */
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 5, 16, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: #00e5ff;
+            text-shadow: 0 0 10px #00e5ff, 0 0 20px #00e5ff;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            color: #ff007f;
+            margin-bottom: 15px;
+            text-shadow: 0 0 8px #ff007f;
+        }
+
+        p {
+            font-size: 1.1rem;
+            max-width: 600px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+            color: #d1d5db;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #00e5ff, #0077ff);
+            border: none;
+            color: #fff;
+            padding: 12px 28px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 229, 255, 0.4);
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 229, 255, 0.6);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #ff007f, #7928ca);
+            box-shadow: 0 4px 15px rgba(255, 0, 127, 0.4);
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 6px 20px rgba(255, 0, 127, 0.6);
+        }
+
+        /* Level Select Grid */
+        .level-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            max-width: 600px;
+            margin-bottom: 25px;
+        }
+
+        .level-card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(0, 229, 255, 0.3);
+            border-radius: 12px;
+            padding: 15px 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .level-card.unlocked {
+            border-color: #00e5ff;
+            background: rgba(0, 229, 255, 0.15);
+        }
+
+        .level-card.unlocked:hover {
+            transform: scale(1.05);
+            background: rgba(0, 229, 255, 0.3);
+        }
+
+        .level-card.locked {
+            opacity: 0.4;
+            cursor: not-allowed;
+            border-color: #555;
+        }
+
+        /* HUD Overlay */
+        #hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+            z-index: 5;
+            padding: 10px 20px;
+            background: rgba(5, 5, 20, 0.6);
+            backdrop-filter: blur(5px);
+            border-radius: 15px;
+            border: 1px solid rgba(0, 229, 255, 0.2);
+        }
+
+        .hud-item {
+            font-size: 1rem;
+            font-weight: bold;
+            color: #00e5ff;
+            text-shadow: 0 0 5px rgba(0, 229, 255, 0.5);
+        }
+
+        /* Science Modal */
+        #question-modal {
+            background: rgba(10, 10, 30, 0.95);
+            border: 2px solid #00e5ff;
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(0, 229, 255, 0.5);
+            max-width: 650px;
+            width: 90%;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            width: 100%;
+            margin-top: 15px;
+        }
+
+        .option-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 229, 255, 0.4);
+            color: #fff;
+            padding: 12px;
+            border-radius: 10px;
+            text-align: left;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+
+        .option-btn:hover {
+            background: rgba(0, 229, 255, 0.2);
+            border-color: #00e5ff;
+        }
+
+        #feedback {
+            margin-top: 15px;
+            font-size: 1rem;
+            font-weight: bold;
+            min-height: 48px;
+        }
+
+        /* Mobile Controls */
+        #touch-controls {
+            position: absolute;
+            bottom: 15px;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .touch-btn-group {
+            display: flex;
+            gap: 15px;
+            pointer-events: auto;
+        }
+
+        .touch-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(0, 229, 255, 0.5);
+            color: #fff;
+            font-size: 1.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+            touch-action: manipulation;
+        }
+
+        .touch-btn:active {
+            background: rgba(0, 229, 255, 0.4);
+            transform: scale(0.95);
+        }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 1.8rem; }
+            h2 { font-size: 1.3rem; }
+            .level-grid { grid-template-columns: repeat(2, 1fr); }
+            .options-grid { grid-template-columns: 1fr; }
+            .hud-item { font-size: 0.8rem; }
+            .touch-btn { width: 60px; height: 60px; font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- HUD -->
+        <div id="hud" class="hidden">
+            <div class="hud-item" id="hud-level">Planet: Mercury</div>
+            <div class="hud-item" id="hud-score">Score: 0</div>
+            <div class="hud-item" id="hud-stars">Stars: 0/0</div>
+            <div class="hud-item" id="hud-lives">Lives: ❤️❤️❤️</div>
+            <button class="btn btn-secondary" style="padding: 5px 12px; font-size: 0.8rem; pointer-events: auto;" onclick="togglePause()">Pause [P]</button>
+        </div>
+
+        <!-- Touch Controls -->
+        <div id="touch-controls" class="hidden">
+            <div class="touch-btn-group">
+                <div class="touch-btn" id="btn-left">◀</div>
+                <div class="touch-btn" id="btn-right">▶</div>
+            </div>
+            <div class="touch-btn-group">
+                <div class="touch-btn" id="btn-jump">▲</div>
+            </div>
+        </div>
+
+        <!-- Canvas -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Main Menu -->
+        <div id="screen-menu" class="overlay">
+            <h1>Solar System Explorer</h1>
+            <h2>Space Jump Mission</h2>
+            <p>Welcome, Cadet! Explore the Solar System, leap across distant planets, collect Energy Stars, and complete Form 2 KSSM Science Missions!</p>
+            <div class="btn-group">
+                <button class="btn" onclick="showScreen('screen-level')">Start Mission</button>
+            </div>
+        </div>
+
+        <!-- Level Select Menu -->
+        <div id="screen-level" class="overlay hidden">
+            <h2>Select Mission Destination</h2>
+            <div class="level-grid" id="level-grid"></div>
+            <button class="btn btn-secondary" onclick="showScreen('screen-menu')">Back to Menu</button>
+        </div>
+
+        <!-- Question Gate Modal -->
+        <div id="screen-question" class="overlay hidden">
+            <div id="question-modal" class="overlay" style="position: relative; height: auto;">
+                <h2 style="color: #00e5ff;">Science Question Gate</h2>
+                <p id="q-text" style="font-size: 1.1rem; color: #fff; margin-bottom: 15px;"></p>
+                <div class="options-grid" id="options-container"></div>
+                <div id="feedback"></div>
+                <button id="q-continue-btn" class="btn hidden" style="margin-top: 15px;" onclick="resumeFromQuestion()">Continue Mission</button>
+            </div>
+        </div>
+
+        <!-- Pause Screen -->
+        <div id="screen-pause" class="overlay hidden">
+            <h2>Mission Paused</h2>
+            <p>Take a breath, Cadet! Ready to return to orbit?</p>
+            <div class="btn-group">
+                <button class="btn" onclick="togglePause()">Resume</button>
+                <button class="btn btn-secondary" onclick="restartLevel()">Restart Level</button>
+                <button class="btn btn-secondary" onclick="exitToLevelSelect()">Mission Select</button>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="screen-gameover" class="overlay hidden">
+            <h2 style="color: #ff3366;">Mission Failed!</h2>
+            <p>Your suit run out of energy or you fell into deep space!</p>
+            <div class="btn-group">
+                <button class="btn" onclick="restartLevel()">Try Again</button>
+                <button class="btn btn-secondary" onclick="exitToLevelSelect()">Mission Select</button>
+            </div>
+        </div>
+
+        <!-- Mission Complete / Final Victory Screen -->
+        <div id="screen-victory" class="overlay hidden">
+            <h1 id="vic-title">Level Cleared!</h1>
+            <p id="vic-stats"></p>
+            <div class="btn-group">
+                <button id="vic-next-btn" class="btn" onclick="nextLevel()">Next Level</button>
+                <button class="btn btn-secondary" onclick="exitToLevelSelect()">Level Select</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- GAME CONFIGURATION AND DATA ---
+        const CANVAS_WIDTH = 900;
+        const CANVAS_HEIGHT = 500;
+
+        const PLANETS = [
+            { id: 1, name: "Mercury", color: "#a6a6a6", gravity: 0.45, speed: 4, bg: "#111122" },
+            { id: 2, name: "Venus", color: "#e3bb76", gravity: 0.5, speed: 4.2, bg: "#221a0f" },
+            { id: 3, name: "Earth", color: "#4b9cd3", gravity: 0.55, speed: 4.5, bg: "#0a1d33" },
+            { id: 4, name: "Mars", color: "#c1440e", gravity: 0.48, speed: 4.5, bg: "#260e07" },
+            { id: 5, name: "Jupiter", color: "#b07f35", gravity: 0.65, speed: 4.8, bg: "#241808" },
+            { id: 6, name: "Saturn", color: "#e2bf7d", gravity: 0.55, speed: 4.5, bg: "#211d13" },
+            { id: 7, name: "Uranus", color: "#4b70dd", gravity: 0.5, speed: 4.5, bg: "#0b192e" },
+            { id: 8, name: "Neptune", color: "#274687", gravity: 0.55, speed: 4.5, bg: "#060d24" },
+            { id: 9, name: "Solar System Master", color: "#ffd700", gravity: 0.55, speed: 5.0, bg: "#1a0033" }
+        ];
+
+        const SCIENCE_QUESTIONS = [
+            { q: "Which object is situated at the center of our Solar System?", options: ["Earth", "The Sun", "Jupiter", "The Moon"], answer: 1, exp: "The Sun is at the center of the Solar System, holding everything together with its immense gravity." },
+            { q: "Identify the correct order of the first 4 inner planets from the Sun.", options: ["Mercury, Venus, Earth, Mars", "Venus, Mercury, Earth, Mars", "Mercury, Earth, Venus, Mars", "Mars, Earth, Venus, Mercury"], answer: 0, exp: "The inner terrestrial planets in order are Mercury, Venus, Earth, and Mars." },
+            { q: "Why is Venus warmer than Mercury despite being farther from the Sun?", options: ["It is closer to the Sun", "Trapped heat due to thick CO2 atmosphere", "High volcanic activity only", "It has more moons"], answer: 1, exp: "Venus has a thick atmosphere of Carbon Dioxide causing a strong greenhouse effect." },
+            { q: "What defines an Astronomical Unit (AU)?", options: ["Distance from Earth to Moon", "Distance from Sun to Neptune", "Mean distance between Earth and Sun", "Speed of light in 1 year"], answer: 2, exp: "1 AU is approximately 150 million km, the average distance between Earth and the Sun." },
+            { q: "Which planet is classified as a Gas Giant with prominent ring systems?", options: ["Mars", "Saturn", "Mercury", "Venus"], answer: 1, exp: "Saturn is a gas giant world renowned for its spectacular and extensive ring system." },
+            { q: "Small rocky masses orbiting the Sun, mostly situated between Mars and Jupiter, are called:", options: ["Comets", "Meteoroids", "Asteroids", "Natural Satellites"], answer: 2, exp: "The Asteroid Belt is located between the orbits of Mars and Jupiter." },
+            { q: "What happens to a comet's tail as it approaches the Sun?", options: ["Points towards the Sun", "Points away from the Sun due to solar wind", "Disappears completely", "Freezes solid"], answer: 1, exp: "Solar wind and radiation pressure push solar gas and dust away, directing the tail away from the Sun." },
+            { q: "Why does Neptune appear bright blue in color?", options: ["Covered in liquid water", "Presence of Methane in its atmosphere", "Reflection of Earth's oceans", "Extreme cold ice crust"], answer: 1, exp: "Methane gas in Neptune's atmosphere absorbs red light and reflects vibrant blue light." },
+            { q: "Which planet is known as the 'Red Planet' due to iron oxide on its surface?", options: ["Mercury", "Mars", "Venus", "Jupiter"], answer: 1, exp: "Mars gets its reddish color from iron oxide (rust) covering its surface rocks and dust." },
+            { q: "What is a characteristic feature of Dwarf Planets like Pluto?", options: ["They have cleared their orbital neighborhood", "They orbit the Sun and have sufficient mass for gravity, but haven't cleared their orbit", "They do not orbit the Sun", "They are made entirely of hot plasma"], answer: 1, exp: "Dwarf planets meet other planetary criteria but have not cleared their orbital path." },
+            { q: "Light Year (ly) measures
